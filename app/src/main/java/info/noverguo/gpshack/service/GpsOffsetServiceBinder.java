@@ -7,31 +7,32 @@ import info.noverguo.gpshack.IGpsOffsetService;
 
 /**
  * Created by noverguo on 2016/6/8.
+ * Binder是行为规范 类似接口
  */
-public class GpsOffsetService extends IGpsOffsetService.Stub {
-    private static final String TAG = GpsOffsetService.class.getSimpleName();
-    private static final String PREF_NAME = GpsOffsetService.class.getSimpleName();
+public class GpsOffsetServiceBinder extends IGpsOffsetService.Stub {
+    private static final String TAG = GpsOffsetServiceBinder.class.getSimpleName();
+    private static final String PREF_NAME = GpsOffsetServiceBinder.class.getSimpleName();
     private static final String KEY_LATITUDE = "LATITUDE";
     private static final String KEY_LONGITUDE = "LONGITUDE";
     private static final String KEY_LATITUDE_OFFSET = "LATITUDE_OFFSET";
     private static final String KEY_LONGITUDE_OFFSET = "LONGITUDE_OFFSET";
-    private static GpsOffsetService sInst;
+    private static GpsOffsetServiceBinder sInst;
     SharedPreferences sharedPreferences;
     private double latitude;
     private double longitude;
     private double latitudeOffset;
     private double longitudeOffset;
-    public static GpsOffsetService get(Context context) {
+    public static GpsOffsetServiceBinder get(Context context) {
         if (sInst == null) {
-            synchronized (GpsOffsetService.class) {
+            synchronized (GpsOffsetServiceBinder.class) {
                 if (sInst == null) {
-                    sInst = new GpsOffsetService(context);
+                    sInst = new GpsOffsetServiceBinder(context);
                 }
             }
         }
         return sInst;
     }
-    private GpsOffsetService(Context context) {
+    private GpsOffsetServiceBinder(Context context) {
         sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         latitudeOffset = Double.valueOf(sharedPreferences.getString(KEY_LATITUDE_OFFSET, "0"));
         longitudeOffset = Double.valueOf(sharedPreferences.getString(KEY_LONGITUDE_OFFSET, "0"));

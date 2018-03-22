@@ -2,10 +2,8 @@ package info.noverguo.gpshack.service;
 
 import android.app.Notification;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -17,23 +15,28 @@ import info.noverguo.gpshack.receiver.ActionReceiver;
 
 /**
  * Created by noverguo on 2016/6/8.
+ * 通知栏UI服务,触发上下左右广播
+ * 并和binder进行绑定!!!!
  */
 public class RemoteOffsetGpsService extends Service {
+
+
     NotificationManager notificationManager;
-    GpsOffsetService gpsOffsetService;
+    GpsOffsetServiceBinder gpsOffsetServiceBinder;
     ActionReceiver actionReceiver;
+
+
     @Override
     public void onCreate() {
         super.onCreate();
+        //getApplicationContext 是宿主的??
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        gpsOffsetService = GpsOffsetService.get(getApplicationContext());
-        listenAction();
+        gpsOffsetServiceBinder = GpsOffsetServiceBinder.get(getApplicationContext());
+        ActionReceiver.register(getApplicationContext()).setGpsOffsetServiceBinder(gpsOffsetServiceBinder);
         showButtonNotify();
     }
 
-    private void listenAction() {
-        ActionReceiver.register(getApplicationContext()).setGpsOffsetService(gpsOffsetService);
-    }
+
 
     private void showButtonNotify() {
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this);
@@ -58,7 +61,7 @@ public class RemoteOffsetGpsService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return gpsOffsetService;
+        return gpsOffsetServiceBinder;
     }
 
     @Override

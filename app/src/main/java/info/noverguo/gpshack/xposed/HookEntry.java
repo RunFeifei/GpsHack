@@ -36,14 +36,14 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 import info.noverguo.gpshack.BuildConfig;
 import info.noverguo.gpshack.callback.ResultCallback;
 import info.noverguo.gpshack.receiver.ResetReceiver;
-import info.noverguo.gpshack.service.LocalGpsOffsetService;
+import info.noverguo.gpshack.service.LocalGpsOffsetHelper;
 import info.noverguo.gpshack.utils.XposedUtils;
 
 /**
  * Created by noverguo on 2016/7/18.
  */
 public class HookEntry implements IXposedHookLoadPackage {
-    LocalGpsOffsetService localGpsOffsetService;
+    LocalGpsOffsetHelper localGpsOffsetHelper;
     private double latitudeOffset;
     private double longitudeOffset;
     private double lastLatitude;
@@ -53,18 +53,24 @@ public class HookEntry implements IXposedHookLoadPackage {
     Set<Class> listenerClasses = new HashSet<>();
     Map<LocationListener, Long> listeners = new HashMap<>();
     Map<LocationListener, Long> listenerUpdateTimes = new HashMap<>();
-    Set<PendingIntent> pendingIntents  = new HashSet<>();
+    Set<PendingIntent> pendingIntents = new HashSet<>();
     String packageName;
     static boolean init = false;
     Handler uiHandler;
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lp) throws Throwable {
-        if (lp.appInfo == null) {
+        if (!lp.packageName.contains("com.tencent.mm")) {
             return;
         }
-        if (lp.packageName.equals("info.noverguo.gpshack") || !lp.isFirstApplication || init) {
-            return;
-        }
+//        if (lp.appInfo == null) {
+//            return;
+//        }
+//        if (!lp.isFirstApplication || init) {
+//            return;
+//        }
+        XposedBridge.log("111111111111111111111111111111111111111111111111111111");
+
         init = true;
         packageName = lp.packageName;
         String applicationClass = lp.appInfo.className;
@@ -84,7 +90,7 @@ public class HookEntry implements IXposedHookLoadPackage {
             public void afterHookedMethod(XC_MethodHook.MethodHookParam param) throws Throwable {
                 context = (Context) param.thisObject;
                 uiHandler = new Handler(Looper.getMainLooper());
-                localGpsOffsetService = LocalGpsOffsetService.get(context);
+                localGpsOffsetHelper = LocalGpsOffsetHelper.get(context);
                 reset();
                 ResetReceiver.register(context, new ResetReceiver.Callback() {
                     @Override
@@ -99,13 +105,14 @@ public class HookEntry implements IXposedHookLoadPackage {
         hookCell();
         hookGpsStatus();
         hookWifi();
+        XposedBridge.log("22222222222222222222222222222222222222222222222222");
     }
 
     private void hookLocationGet() {
         XposedUtils.findAndHookMethod(Location.class, "getLatitude", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                if (localGpsOffsetService == null) {
+                if (localGpsOffsetHelper == null) {
                     return;
                 }
                 Double result = (Double) param.getResult();
@@ -114,14 +121,15 @@ public class HookEntry implements IXposedHookLoadPackage {
                 }
                 lastLatitude = result;
                 lastLocation = new Location((Location) param.thisObject);
-//                if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  Location.getLatitude: " + result + ", " + latitudeOffset + ", " + (result + latitudeOffset));
+                if (BuildConfig.DEBUG)
+                    XposedBridge.log(packageName + ":  Location.getLatitude: " + result + ", " + latitudeOffset + ", " + (result + latitudeOffset));
                 param.setResult(result + latitudeOffset);
             }
         });
         XposedUtils.findAndHookMethod(Location.class, "getLongitude", new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                if (localGpsOffsetService == null) {
+                if (localGpsOffsetHelper == null) {
                     return;
                 }
                 Double result = (Double) param.getResult();
@@ -130,7 +138,8 @@ public class HookEntry implements IXposedHookLoadPackage {
                 }
                 lastLongitude = result;
                 lastLocation = new Location((Location) param.thisObject);
-//                if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  Location.getLongitude: " + result + ", " + longitudeOffset + ", " + (result + longitudeOffset));
+                if (BuildConfig.DEBUG)
+                    XposedBridge.log(packageName + ":  Location.getLongitude: " + result + ", " + longitudeOffset + ", " + (result + longitudeOffset));
                 param.setResult(result + longitudeOffset);
             }
         });
@@ -138,7 +147,7 @@ public class HookEntry implements IXposedHookLoadPackage {
         XposedUtils.findAndHookMethod(Location.class, "setLatitude", double.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (localGpsOffsetService == null) {
+                if (localGpsOffsetHelper == null) {
                     return;
                 }
                 Double arg0 = (Double) param.args[0];
@@ -146,13 +155,14 @@ public class HookEntry implements IXposedHookLoadPackage {
                     return;
                 }
                 param.args[0] = arg0 - latitudeOffset;
-//                if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  Location.setLatitude: " + arg0 + ", " + latitudeOffset + ", " + (arg0 - latitudeOffset));
+                if (BuildConfig.DEBUG)
+                    XposedBridge.log(packageName + ":  Location.setLatitude: " + arg0 + ", " + latitudeOffset + ", " + (arg0 - latitudeOffset));
             }
         });
         XposedUtils.findAndHookMethod(Location.class, "setLongitude", double.class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                if (localGpsOffsetService == null) {
+                if (localGpsOffsetHelper == null) {
                     return;
                 }
                 Double arg0 = (Double) param.args[0];
@@ -160,7 +170,8 @@ public class HookEntry implements IXposedHookLoadPackage {
                     return;
                 }
                 param.args[0] = arg0 - longitudeOffset;
-//                if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  Location.setLongitude: " + arg0 + ", " + longitudeOffset + ", " + (arg0 - longitudeOffset));
+                if (BuildConfig.DEBUG)
+                    XposedBridge.log(packageName + ":  Location.setLongitude: " + arg0 + ", " + longitudeOffset + ", " + (arg0 - longitudeOffset));
             }
         });
     }
@@ -246,12 +257,15 @@ public class HookEntry implements IXposedHookLoadPackage {
                     });
                     XposedUtils.findAndHookMethod(clazz, "onLocationChanged", Location.class, new XC_MethodHook() {
                         LocationListener locationListener;
+
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             Location location = (Location) param.args[0];
                             locationListener = (LocationListener) param.thisObject;
                             update(false);
-                            if (BuildConfig.DEBUG) XposedBridge.log("onLocationChanged: " + location.getProvider() + ", " + location.getAccuracy() + ", " + location.getAltitude() + ", " + location.getBearing() + ", " + location.getSpeed() + ", " + location.getTime());
+                            if (BuildConfig.DEBUG)
+                                XposedBridge.log("onLocationChanged: " + location.getProvider() + ", " + location.getAccuracy() + ", " + location.getAltitude
+                                        () + ", " + location.getBearing() + ", " + location.getSpeed() + ", " + location.getTime());
                         }
 
                         Runnable updateRunnable = new Runnable() {
@@ -354,6 +368,7 @@ public class HookEntry implements IXposedHookLoadPackage {
 
     Set<Class> gpsStatusClasses = new HashSet<>();
     int firstFixTime = new Random().nextInt(10) + 1;
+
     private void hookGpsStatus() {
         XposedHelpers.findAndHookMethod(LocationManager.class, "addGpsStatusListener", GpsStatus.Listener.class, new XC_MethodHook() {
             @Override
@@ -368,6 +383,7 @@ public class HookEntry implements IXposedHookLoadPackage {
                     XposedUtils.findAndHookMethod(clazz, "onGpsStatusChanged", int.class, new XC_MethodHook() {
                         boolean firstFix = false;
                         int count = 0;
+
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             Integer status = (Integer) param.args[0];
@@ -385,10 +401,10 @@ public class HookEntry implements IXposedHookLoadPackage {
                                     param.args[0] = GpsStatus.GPS_EVENT_SATELLITE_STATUS;
                                 }
                             }
-                            if ((Integer)param.args[0] == GpsStatus.GPS_EVENT_FIRST_FIX) {
+                            if ((Integer) param.args[0] == GpsStatus.GPS_EVENT_FIRST_FIX) {
                                 firstFixTime = new Random().nextInt(10) + 1;
                             }
-                            if ((Integer)param.args[0] == GpsStatus.GPS_EVENT_SATELLITE_STATUS) {
+                            if ((Integer) param.args[0] == GpsStatus.GPS_EVENT_SATELLITE_STATUS) {
                                 count++;
                                 if (count > 15) {
                                     firstFix = false;
@@ -422,12 +438,17 @@ public class HookEntry implements IXposedHookLoadPackage {
                 }
                 setStatusMethod.setAccessible(true);
                 firstFixMethod.setAccessible(true);
-                float[] fArr = new float[]{6.0f, 12.0f, 18.0f, 24.0f, BitmapDescriptorFactory.HUE_ORANGE, 36.0f, 42.0f, 48.0f, 54.0f, BitmapDescriptorFactory.HUE_YELLOW, 66.0f, 72.0f};
-                float[] fArr2 = new float[]{6.0f, 12.0f, 18.0f, 24.0f, BitmapDescriptorFactory.HUE_ORANGE, 36.0f, 42.0f, 48.0f, 54.0f, BitmapDescriptorFactory.HUE_YELLOW, 66.0f, 72.0f};
-                float[] fArr3 = new float[]{BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_YELLOW, 90.0f, BitmapDescriptorFactory.HUE_GREEN, 150.0f, BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE, BitmapDescriptorFactory.HUE_VIOLET, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_ROSE, 360.0f};
+                float[] fArr = new float[] {6.0f, 12.0f, 18.0f, 24.0f, BitmapDescriptorFactory.HUE_ORANGE, 36.0f, 42.0f, 48.0f, 54.0f,
+                        BitmapDescriptorFactory.HUE_YELLOW, 66.0f, 72.0f};
+                float[] fArr2 = new float[] {6.0f, 12.0f, 18.0f, 24.0f, BitmapDescriptorFactory.HUE_ORANGE, 36.0f, 42.0f, 48.0f, 54.0f,
+                        BitmapDescriptorFactory.HUE_YELLOW, 66.0f, 72.0f};
+                float[] fArr3 = new float[] {BitmapDescriptorFactory.HUE_ORANGE, BitmapDescriptorFactory.HUE_YELLOW, 90.0f, BitmapDescriptorFactory
+                        .HUE_GREEN, 150.0f, BitmapDescriptorFactory.HUE_CYAN, BitmapDescriptorFactory.HUE_AZURE, BitmapDescriptorFactory.HUE_BLUE,
+                        BitmapDescriptorFactory.HUE_VIOLET, BitmapDescriptorFactory.HUE_MAGENTA, BitmapDescriptorFactory.HUE_ROSE, 360.0f};
                 if (setStatusMethod != null) {
                     try {
-                        setStatusMethod.invoke(gpsStatus, new Object[]{Integer.valueOf(12), new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, fArr, fArr2, fArr3, Integer.valueOf(4095), Integer.valueOf(4095), Integer.valueOf(4095)});
+                        setStatusMethod.invoke(gpsStatus, new Object[] {Integer.valueOf(12), new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, fArr, fArr2,
+                                fArr3, Integer.valueOf(4095), Integer.valueOf(4095), Integer.valueOf(4095)});
                         if (gpsStatus.getTimeToFirstFix() <= 0) {
                             firstFixMethod.invoke(gpsStatus, firstFixTime);
                             firstFixTime += new Random().nextInt(10);
@@ -454,26 +475,27 @@ public class HookEntry implements IXposedHookLoadPackage {
     }
 
     private void reset() {
-        localGpsOffsetService.getLatitude(new ResultCallback<Double>() {
+        localGpsOffsetHelper.getLatitude(new ResultCallback<Double>() {
             @Override
             public void onResult(Double res) {
                 lastLatitude = res;
             }
         });
-        localGpsOffsetService.getLongitude(new ResultCallback<Double>() {
+        localGpsOffsetHelper.getLongitude(new ResultCallback<Double>() {
             @Override
             public void onResult(Double res) {
                 lastLongitude = res;
             }
         });
-        localGpsOffsetService.getLatitudeOffset(new ResultCallback<Double>() {
+        localGpsOffsetHelper.getLatitudeOffset(new ResultCallback<Double>() {
             @Override
             public void onResult(final Double latitudeOff) {
                 latitudeOffset = latitudeOff;
-                localGpsOffsetService.getLongitudeOffset(new ResultCallback<Double>() {
+                localGpsOffsetHelper.getLongitudeOffset(new ResultCallback<Double>() {
                     @Override
                     public void onResult(Double longitudeOff) {
-                        if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  reset.getLongitudeOffset, getLatitudeOffset: " + longitudeOff + ", " + latitudeOff);
+                        if (BuildConfig.DEBUG)
+                            XposedBridge.log(packageName + ":  reset.getLongitudeOffset, getLatitudeOffset: " + longitudeOff + ", " + latitudeOff);
                         longitudeOffset = longitudeOff;
                         updateLocation();
                     }
@@ -483,7 +505,9 @@ public class HookEntry implements IXposedHookLoadPackage {
     }
 
     private void updateLocation() {
-        if (BuildConfig.DEBUG) XposedBridge.log(packageName + ":  updateLocation: " + lastLongitude + ", " + lastLatitude + ", " + longitudeOffset + ", " + latitudeOffset + ", " + listeners.size());
+        if (BuildConfig.DEBUG)
+            XposedBridge.log(packageName + ":  updateLocation: " + lastLongitude + ", " + lastLatitude + ", " + longitudeOffset + ", " + latitudeOffset + ", " +
+                    "" + listeners.size());
         for (LocationListener locationListener : listeners.keySet()) {
             locationListener.onLocationChanged(getLastLocation());
         }
@@ -495,7 +519,9 @@ public class HookEntry implements IXposedHookLoadPackage {
             }
         }
     }
+
     Random random = new Random();
+
     private Location getLastLocation() {
         if (lastLocation == null) {
             lastLocation = new Location(LocationManager.GPS_PROVIDER);

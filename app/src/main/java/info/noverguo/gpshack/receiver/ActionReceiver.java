@@ -1,38 +1,38 @@
 package info.noverguo.gpshack.receiver;
 
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.widget.Toast;
 
-import info.noverguo.gpshack.service.GpsOffsetService;
+import info.noverguo.gpshack.service.GpsOffsetServiceBinder;
 
 /**
  * Created by noverguo on 2016/7/18.
+ * 监测上下左右 并设置经纬度
  */
-public class ActionReceiver extends UnregisterReceiver {
+public class ActionReceiver extends SuperActionReceiver {
     private static final String ACTION_LEFT = "info.noverguo.gpshack.receiver.ActionReceiver.ACTION_LEFT";
     private static final String ACTION_UP = "info.noverguo.gpshack.receiver.ActionReceiver.ACTION_UP";
     private static final String ACTION_DOWN = "info.noverguo.gpshack.receiver.ActionReceiver.ACTION_DOWN";
     private static final String ACTION_RIGHT = "info.noverguo.gpshack.receiver.ActionReceiver.ACTION_RIGHT";
     private static final double DISTANCE = 0.0003;
-    GpsOffsetService gpsOffsetService;
+    GpsOffsetServiceBinder gpsOffsetServiceBinder;
 
     public ActionReceiver(Context context) {
         super(context);
     }
 
-    public void setGpsOffsetService(GpsOffsetService gpsOffsetService) {
-        this.gpsOffsetService = gpsOffsetService;
+    public void setGpsOffsetServiceBinder(GpsOffsetServiceBinder gpsOffsetServiceBinder) {
+        this.gpsOffsetServiceBinder = gpsOffsetServiceBinder;
     }
     Toast toast;
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (gpsOffsetService == null) {
-            gpsOffsetService = GpsOffsetService.get(context);
+        if (gpsOffsetServiceBinder == null) {
+            gpsOffsetServiceBinder = GpsOffsetServiceBinder.get(context);
         }
         String action = intent.getAction();
         if (TextUtils.isEmpty(action)) {
@@ -43,16 +43,16 @@ public class ActionReceiver extends UnregisterReceiver {
             toast = null;
         }
         if (ACTION_LEFT.equals(action)) {
-            gpsOffsetService.setLongitudeOffset(gpsOffsetService.getLongitudeOffset() - DISTANCE);
+            gpsOffsetServiceBinder.setLongitudeOffset(gpsOffsetServiceBinder.getLongitudeOffset() - DISTANCE);
             toast = Toast.makeText(context.getApplicationContext(), "向左移动", Toast.LENGTH_SHORT);
         } else if (ACTION_RIGHT.equals(action)) {
-            gpsOffsetService.setLongitudeOffset(gpsOffsetService.getLongitudeOffset() + DISTANCE);
+            gpsOffsetServiceBinder.setLongitudeOffset(gpsOffsetServiceBinder.getLongitudeOffset() + DISTANCE);
             toast = Toast.makeText(context.getApplicationContext(), "向右移动", Toast.LENGTH_SHORT);
         } else if (ACTION_UP.equals(action)) {
-            gpsOffsetService.setLatitudeOffset(gpsOffsetService.getLatitudeOffset() + DISTANCE);
+            gpsOffsetServiceBinder.setLatitudeOffset(gpsOffsetServiceBinder.getLatitudeOffset() + DISTANCE);
             toast = Toast.makeText(context.getApplicationContext(), "向上移动", Toast.LENGTH_SHORT);
         } else if (ACTION_DOWN.equals(action)) {
-            gpsOffsetService.setLatitudeOffset(gpsOffsetService.getLatitudeOffset() - DISTANCE);
+            gpsOffsetServiceBinder.setLatitudeOffset(gpsOffsetServiceBinder.getLatitudeOffset() - DISTANCE);
             toast = Toast.makeText(context.getApplicationContext(), "向下移动", Toast.LENGTH_SHORT);
         }
         if (toast != null) {

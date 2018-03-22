@@ -18,18 +18,28 @@ import info.noverguo.gpshack.callback.ResultCallback;
 
 /**
  * Created by noverguo on 2016/6/8.
+ *
+ * context 是宿主的context,在此将宿主绑定到了IGpsOffsetService(RemoteOffsetGpsService)
+ *RemoteOffsetGpsService里面和binder进行绑定
+ * binder里面
  */
-public class LocalGpsOffsetService {
-    private static final String TAG = LocalGpsOffsetService.class.getSimpleName();
-    private static LocalGpsOffsetService sInst;
+public class LocalGpsOffsetHelper {
+    private static final String TAG = LocalGpsOffsetHelper.class.getSimpleName();
+    private static LocalGpsOffsetHelper sInst;
     private Context context;
     private IGpsOffsetService remotegpsOffsetService;
     private boolean init = false;
+
+    ExecutorService executorService;
+    LinkedList<Runnable> tasks = new LinkedList<>();
+
     private ServiceConnection mRemoteConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             if (BuildConfig.DEBUG) Log.i(TAG, "onServiceConnected");
-            synchronized (LocalGpsOffsetService.this) {
+            synchronized (LocalGpsOffsetHelper.this) {
+                //service和binder绑定了的!
+                //获得另一个进程中的Service传递过来的IBinder对象-service
                 remotegpsOffsetService = IGpsOffsetService.Stub.asInterface(service);
             }
             runIfNeed();
@@ -38,27 +48,31 @@ public class LocalGpsOffsetService {
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             if (BuildConfig.DEBUG) Log.i(TAG, "onServiceDisconnected");
-            synchronized (LocalGpsOffsetService.this) {
+            synchronized (LocalGpsOffsetHelper.this) {
                 init = false;
                 remotegpsOffsetService = null;
             }
         }
     };
-    public static LocalGpsOffsetService get(Context context) {
+
+    public static LocalGpsOffsetHelper get(Context context) {
         if (sInst == null) {
-            synchronized (LocalGpsOffsetService.class) {
+            synchronized (LocalGpsOffsetHelper.class) {
                 if (sInst == null) {
-                    sInst = new LocalGpsOffsetService(context);
+                    sInst = new LocalGpsOffsetHelper(context);
                 }
             }
         }
         return sInst;
     }
-    private LocalGpsOffsetService(Context context) {
+
+    private LocalGpsOffsetHelper(Context context) {
         this.context = context.getApplicationContext();
     }
-    ExecutorService executorService;
-    LinkedList<Runnable> tasks = new LinkedList<>();
+
+    /**
+     * 将宿主和 IGpsOffsetService 绑定到了一起
+     */
     private boolean init() {
         synchronized (this) {
             if (init) {
@@ -145,7 +159,7 @@ public class LocalGpsOffsetService {
         runIfNeed();
     }
 
-    public void getLongitudeOffset( final ResultCallback<Double> callback) {
+    public void getLongitudeOffset(final ResultCallback<Double> callback) {
         if (callback == null) {
             return;
         }
@@ -221,7 +235,7 @@ public class LocalGpsOffsetService {
         runIfNeed();
     }
 
-    public void getLongitude( final ResultCallback<Double> callback) {
+    public void getLongitude(final ResultCallback<Double> callback) {
         if (callback == null) {
             return;
         }

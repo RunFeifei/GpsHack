@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 
 /**
  * Created by noverguo on 2016/6/8.
+ * 宿主Receiver
  */
 public class ResetReceiver extends BroadcastReceiver {
     private static final String ACTION_RESET = ResetReceiver.class.getName() + "ACTION_RESET";

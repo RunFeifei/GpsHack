@@ -6,10 +6,10 @@ import android.content.Context;
 /**
  * Created by noverguo on 2016/6/8.
  */
-public abstract class UnregisterReceiver extends BroadcastReceiver {
+public abstract class SuperActionReceiver extends BroadcastReceiver {
     boolean unregister = false;
     Context context;
-    public UnregisterReceiver(Context context) {
+    public SuperActionReceiver(Context context) {
         this.context = context.getApplicationContext();
     }
     public synchronized boolean unregister() {
